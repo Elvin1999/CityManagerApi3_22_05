@@ -2,7 +2,10 @@
 using CityManagerApi3_22_05.Data;
 using CityManagerApi3_22_05.Data.Abstract;
 using CityManagerApi3_22_05.Data.Concrete;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace CityManagerApi3_22_05
 {
@@ -20,11 +23,29 @@ namespace CityManagerApi3_22_05
             builder.Services.AddSwaggerGen();
 
             builder.Services.AddScoped<IAppRepository, AppRepository>();
+            builder.Services.AddScoped<IAuthRepository, AuthRepository>();
             var conn = builder.Configuration.GetConnectionString("Default");
             builder.Services.AddDbContext<AppDataContext>(opt =>
             {
                 opt.UseSqlServer(conn);
             });
+
+            builder.Services.AddAutoMapper(typeof(Program).Assembly);
+
+            var key = Encoding.ASCII.GetBytes(builder.Configuration.GetSection("AppSettings:Token").Value);
+
+            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
+                {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(key),
+                        ValidateIssuer = false,
+                        ValidateAudience = false,
+                    };
+                });
+
 
             var app = builder.Build();
 
